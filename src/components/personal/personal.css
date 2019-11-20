@@ -1,0 +1,19 @@
+.personal__container{
+    padding: 15px;
+}
+
+.personal__container h2{
+    font-size: 1.5rem;
+    font-weight: 300;
+    color: #555;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+}
+
+.personal__container h3{
+    font-size: 2rem;
+    font-weight: 300;
+    width: 100%;
+    text-align: center;
+    color: #777;
+}

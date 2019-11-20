@@ -1,0 +1,24 @@
+{
+  "name": "encrypt-chat",
+  "version": "1.0.0",
+  "description": "end-to-end encrypted chat",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "build": "parcel build src/index.html --out-dir dist",
+    "dev": "parcel src/index.html --out-dir dist"
+  },
+  "author": "Yo",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.17.1",
+    "parcel-bundler": "^1.12.4",
+    "react": "^16.12.0",
+    "react-dom": "^16.12.0",
+    "socket.io": "^2.3.0",
+    "socket.io-client": "^2.3.0"
+  },
+  "devDependencies": {
+    "prop-types": "^15.7.2"
+  }
+}

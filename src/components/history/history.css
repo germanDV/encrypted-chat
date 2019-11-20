@@ -1,0 +1,28 @@
+.history__container{
+    padding: 15px;
+}
+
+.history__container h2 {
+    font-size: 1.5rem;
+    font-weight: 300;
+    color: #555;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+}
+
+.history__container h2 span{
+    color: #777;
+    font-weight: 500;
+    font-size: inherit;
+}
+
+.history__container ul{
+    margin: 15px;
+}
+
+.history__container ul li span{
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-right: 10px;
+    font-family: monospace;
+}

@@ -1,0 +1,29 @@
+.contacts__container{
+    padding: 15px;
+}
+
+.contacts__container h2{
+    font-size: 1.5rem;
+    font-weight: 300;
+    color: #555;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+}
+
+.contacts__container ul{
+    margin-left: 100px;
+}
+
+.contacts__icon{
+    margin-right: 15px;
+    font-size: 1.3rem;
+    color: #99cc99;
+}
+
+.contacts__id{
+    transition-duration: .5s;
+}
+.contacts__id:hover{
+    cursor: pointer;
+    font-weight: 700;
+}

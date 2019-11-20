@@ -43,10 +43,8 @@ const App = () => {
         socket.on('new-message', (msg) => {
             msg = JSON.parse(msg);
 
-            // if it is the first message on the chat, set the "to"
-            if(!to){
-                setTo(msg.from);
-            }
+            // Set "to" for further responses
+            setTo(msg.from);
 
             // Add message to chat
             setChat(prevState => [msg, ...prevState]);

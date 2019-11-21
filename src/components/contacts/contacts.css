@@ -20,6 +20,12 @@
     color: #99cc99;
 }
 
+.contacts__new{
+    margin-left: 10px;
+    font-size: 1.5rem;
+    color: #db7093;
+}
+
 .contacts__id{
     transition-duration: .5s;
 }

@@ -26,6 +26,11 @@ const Contacts = (props) => {
                             <span className='contacts__id'>
                                 {contact.id}
                             </span>
+                            {contact.unread && (
+                                <span className='contacts__new' role='img' aria-label='new message'>
+                                    &#9756;
+                                </span>
+                            )}
                         </li>
                     );
                 })}

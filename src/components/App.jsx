@@ -1,5 +1,5 @@
 // Dependencies
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import io from 'socket.io-client';
 import Input from './input/Input';
 import History from './history/History';
@@ -19,19 +19,36 @@ const App = () => {
     const [to, setTo] = useState({});
     const [publicKey, setPublicKey] = useState('');
 
-    const keysHandler = (pubKey) => {
+    const keysHandler = useCallback((pubKey) => {
         // Store public key on local state
         setPublicKey(pubKey);
 
         // Publish public key on socket
         socket.emit('public-key', pubKey);
-    };
+    }, []);
+
+    const encryptedHandler = useCallback((msg) => {
+        // Emit new message through the socket
+        socket.emit('new-message', JSON.stringify(msg));
+    }, []);
+
+    const decryptedHandler = useCallback((msg) => {
+        // Add flag to contact to indicate there's a new message
+        setContacts(prevState => {
+            return prevState.map(cont => {
+                if(cont.id === msg.from){
+                    cont.unread = true;
+                }
+                return cont;
+            });
+        });
+
+        // Add incoming decrypted message to local state
+        setChat(prevState => [msg, ...prevState]);
+    }, []);
 
     // Set up listeners for socket events
     useEffect(() => {
-        // Send message to web-worker to generate a key-pair
-        worker.postMessage({ cmd: 'keys', payload: null });
-
         // Listen to messages from web-worker
         worker.onmessage = (ev) => {
             switch(ev.data.msg){
@@ -39,19 +56,18 @@ const App = () => {
                     keysHandler(ev.data.payload);
                     break;
                 case 'encrypted':
-                    // Emit new message through the socket
-                    socket.emit('new-message', JSON.stringify(ev.data.payload));
+                    encryptedHandler(ev.data.payload);
                     break;
                 case 'decrypted':
-                    // Add incoming decrypted message to local state
-                    const msg = ev.data.payload;
-                    setTo({ id: msg.from, key: msg.fromKey });
-                    setChat(prevState => [msg, ...prevState]);
+                    decryptedHandler(ev.data.payload);
                     break;
                 default:
                     console.log('web-worker error');
             }
         };
+
+        // Send message to web-worker to generate a key-pair
+        worker.postMessage({ cmd: 'keys', payload: null });
 
         // Receive list of all online contacts
         socket.on('all-contacts', (contactArr) => {
@@ -109,6 +125,15 @@ const App = () => {
 
     const establishChatHandler = (contact) => {
         setTo(contact);
+        // Remove "unread" flag from contact
+        setContacts(prevState => {
+            return prevState.map(cont => {
+                if(cont.id === contact.id){
+                    cont.unread = false;
+                }
+                return cont;
+            });
+        });
     };
 
     return (

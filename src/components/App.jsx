@@ -44,7 +44,7 @@ const App = () => {
         });
 
         // Add incoming decrypted message to local state
-        setChat(prevState => [msg, ...prevState]);
+        setChat(prevState => [...prevState, msg]);
     }, []);
 
     // Set up listeners for socket events
@@ -120,7 +120,7 @@ const App = () => {
         });
 
         // Add new message to local state
-        setChat(prevState => [newMsg, ...prevState]);
+        setChat(prevState => [...prevState, newMsg]);
     };
 
     const establishChatHandler = (contact) => {

@@ -18,6 +18,12 @@
 
 .history__container ul{
     margin: 15px;
+    max-height: 600px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+.history__container ul::-webkit-scrollbar{
+    display: none;
 }
 
 .history__container ul li span{

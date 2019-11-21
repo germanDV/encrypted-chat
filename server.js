@@ -25,28 +25,28 @@ io.on('connection', (socket) => {
     const newContact = { id: socket.id, key: null };
     contacts.push(newContact);
 
-    // Send new contact to the rest of the sockets
-    socket.broadcast.emit('new-contact', JSON.stringify(newContact));
-
     socket.on('new-message', (msg) => {
         // Parse incoming msg object
         const msgObj = JSON.parse(msg);
 
-        // Send to individual socketid (private message)
+        // Send to individual socketid
         io.to(msgObj.to).emit('new-message', msg);
     });
 
     socket.on('public-key', (key) => {
+        let contactToShare;
+
         // Add public key to contact
         contacts = contacts.map(i => {
             if(i.id === socket.id){
                 i.key = key;
+                contactToShare = i;
             }
             return i;
         });
 
-        // Send updated list of contacts to everybody
-        io.emit('all-contacts', JSON.stringify(contacts));
+        // Send new contact to the rest of the sockets
+        socket.broadcast.emit('new-contact', JSON.stringify(contactToShare));
     });
 
     socket.on('disconnect', () => {

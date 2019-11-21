@@ -16,4 +16,10 @@
     width: 100%;
     text-align: center;
     color: #777;
+    margin-bottom: 40px;
+}
+
+.personal__container span{
+    word-break: break-all;
+    color: #777;
 }

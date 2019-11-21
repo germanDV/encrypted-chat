@@ -3,27 +3,41 @@ import PropTypes from 'prop-types';
 import './contacts.css';
 
 const Contacts = (props) => {
+    if(!props.isReady){
+        return (
+            <div className='contacts__container'>
+                <h2>Generating key-pair...</h2>
+            </div>
+        );
+    }
     return (
         <div className='contacts__container'>
             <h2>online contacts</h2>
             <ul>
-                {props.contacts.map(contact => (
-                    <li
-                        key={contact}
-                        onClick={() => props.onEstablishChat(contact)}
-                    >
-                        <span className='contacts__icon'>&#128125;</span>
-                        <span className='contacts__id'>{contact}</span>
-                    </li>
-                ))}
+                {props.contacts.map(contact => {
+                    return (
+                        <li
+                            key={contact.id}
+                            onClick={() => props.onEstablishChat(contact)}
+                        >
+                            <span className='contacts__icon' role='img' aria-label='user'>
+                                &#128125;
+                            </span>
+                            <span className='contacts__id'>
+                                {contact.id}
+                            </span>
+                        </li>
+                    );
+                })}
             </ul>
         </div>
     );
 };
 
 Contacts.propTypes = {
-    contacts: PropTypes.arrayOf(PropTypes.string).isRequired,
+    contacts: PropTypes.arrayOf(PropTypes.object).isRequired,
     onEstablishChat: PropTypes.func.isRequired,
+    isReady: PropTypes.bool.isRequired,
 };
 
 export default Contacts;

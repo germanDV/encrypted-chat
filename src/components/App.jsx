@@ -6,6 +6,9 @@ import History from './history/History';
 import Contacts from './contacts/Contacts';
 import Personal from './personal/Personal';
 
+// Instantiate web-worker
+const worker = new Worker('./worker.js');
+
 // Create socket
 const socket = io();
 
@@ -13,11 +16,44 @@ const App = () => {
     const [chat, setChat] = useState([]);
     const [contacts, setContacts] = useState([]);
     const [mySocketId, setMySocketId] = useState('');
-    const [to, setTo] = useState('');
+    const [to, setTo] = useState({});
+    const [publicKey, setPublicKey] = useState('');
+
+    const keysHandler = (pubKey) => {
+        // Store public key on local state
+        setPublicKey(pubKey);
+
+        // Publish public key on socket
+        socket.emit('public-key', pubKey);
+    };
 
     // Set up listeners for socket events
     useEffect(() => {
-        // Add list of all online contacts when connecting
+        // Send message to web-worker to generate a key-pair
+        worker.postMessage({ cmd: 'keys', payload: null });
+
+        // Listen to messages from web-worker
+        worker.onmessage = (ev) => {
+            switch(ev.data.msg){
+                case 'keys':
+                    keysHandler(ev.data.payload);
+                    break;
+                case 'encrypted':
+                    // Emit new message through the socket
+                    socket.emit('new-message', JSON.stringify(ev.data.payload));
+                    break;
+                case 'decrypted':
+                    // Add incoming decrypted message to local state
+                    const msg = ev.data.payload;
+                    setTo({ id: msg.from, key: msg.fromKey });
+                    setChat(prevState => [msg, ...prevState]);
+                    break;
+                default:
+                    console.log('web-worker error');
+            }
+        };
+
+        // Receive list of all online contacts
         socket.on('all-contacts', (contactArr) => {
             setContacts(JSON.parse(contactArr));
         });
@@ -28,48 +64,51 @@ const App = () => {
         });
 
         // Add new contact to local state
-        socket.on('new-contact', (contactId) => {
-            setContacts(prev => [...prev, contactId]);
+        socket.on('new-contact', (contact) => {
+            setContacts(prev => [...prev, JSON.parse(contact)]);
         });
 
         // Remove disconnected contact from local state
         socket.on('contact-die', (contactId) => {
             setContacts(prevState => {
-                return prevState.filter(i => i !== contactId);
+                return prevState.filter(i => i.id !== contactId);
             });
         });
 
         // Listen for new messages and add them to local state
         socket.on('new-message', (msg) => {
-            msg = JSON.parse(msg);
-
-            // Set "to" for further responses
-            setTo(msg.from);
-
-            // Add message to chat
-            setChat(prevState => [msg, ...prevState]);
+            // Ask worker to decrypt incoming message
+            worker.postMessage({
+                cmd: 'decrypt',
+                payload: JSON.parse(msg),
+            });
         });
     }, []);
 
     const newMessageHandler = (msg) => {
-        if(!to) return;
+        if(!to || !publicKey) return;
 
         const newMsg = {
             at: Date.now(),
             from: mySocketId,
-            to,
+            fromKey: publicKey,
+            to: to.id,
+            key: to.key,
             text: msg,
         };
 
+        // Ask worker to encrypt message
+        worker.postMessage({
+            cmd: 'encrypt',
+            payload: newMsg,
+        });
+
         // Add new message to local state
         setChat(prevState => [newMsg, ...prevState]);
-
-        // Emit new message through the socket
-        socket.emit('new-message', JSON.stringify(newMsg));
     };
 
-    const establishChatHandler = (contactId) => {
-        setTo(contactId);
+    const establishChatHandler = (contact) => {
+        setTo(contact);
     };
 
     return (
@@ -78,19 +117,24 @@ const App = () => {
                 <div className='left'>
                     <History
                         chat={chat}
-                        to={to}
+                        to={to.id || ''}
                         mySocketId={mySocketId}
                     />
                 </div>
                 <div className='right'>
                     <div className='top'>
                         <Contacts
-                            contacts={contacts}
+                            // only pass contacts with a public key
+                            contacts={contacts.filter(i => i.key && i.id !== mySocketId)}
                             onEstablishChat={establishChatHandler}
+                            isReady={Boolean(publicKey)}
                         />
                     </div>
                     <div className='bottom'>
-                        <Personal socketId={mySocketId} />
+                        <Personal
+                            socketId={mySocketId}
+                            publicKey={publicKey}
+                        />
                     </div>
                 </div>
             </div>

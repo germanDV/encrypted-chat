@@ -22,10 +22,11 @@ io.on('connection', (socket) => {
     io.to(socket.id).emit('your-socket-id', socket.id);
 
     // Add new contact to contacts array
-    contacts.push(socket.id);
+    const newContact = { id: socket.id, key: null };
+    contacts.push(newContact);
 
     // Send new contact to the rest of the sockets
-    socket.broadcast.emit('new-contact', socket.id);
+    socket.broadcast.emit('new-contact', JSON.stringify(newContact));
 
     socket.on('new-message', (msg) => {
         // Parse incoming msg object
@@ -35,8 +36,21 @@ io.on('connection', (socket) => {
         io.to(msgObj.to).emit('new-message', msg);
     });
 
+    socket.on('public-key', (key) => {
+        // Add public key to contact
+        contacts = contacts.map(i => {
+            if(i.id === socket.id){
+                i.key = key;
+            }
+            return i;
+        });
+
+        // Send updated list of contacts to everybody
+        io.emit('all-contacts', JSON.stringify(contacts));
+    });
+
     socket.on('disconnect', () => {
-        contacts = contacts.filter(i => i !== socket.id);
+        contacts = contacts.filter(i => i.id !== socket.id);
         socket.broadcast.emit('contact-die', socket.id);
     });
 });

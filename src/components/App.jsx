@@ -1,5 +1,10 @@
 // Dependencies
-import React, { useState, useEffect, useCallback } from 'react';
+import React, {
+    useState,
+    useEffect,
+    useCallback,
+    useReducer,
+} from 'react';
 import io from 'socket.io-client';
 import Input from './input/Input';
 import History from './history/History';
@@ -12,12 +17,87 @@ const worker = new Worker('./worker.js');
 // Create socket
 const socket = io();
 
+// Initial state for reducer
+const initialState = {
+    chat: [],
+    contacts: [],
+    to: {
+        id: null,
+        key: null,
+    },
+};
+
+// Reducer
+function reducer(state, action){
+    switch(action.type){
+        case 'set-chat':
+            return {
+                ...state,
+                chat: [
+                    ...state.chat,
+                    action.payload,
+                ],
+            };
+
+        case 'set-contacts':
+            return {
+                ...state,
+                contacts: action.payload,
+            };
+
+        case 'new-contact':
+            return {
+                ...state,
+                contacts: [
+                    ...state.contacts,
+                    action.payload,
+                ],
+            };
+
+        case 'contact-die':
+            return {
+                ...state,
+                contacts: state.contacts.filter(i => i.id !== action.payload),
+            };
+
+        case 'contacts-unread':
+            const currentContactId = state.to.id;
+            return {
+                ...state,
+                contacts: state.contacts.map(cont => {
+                    if(cont.id === action.payload && cont.id !== currentContactId){
+                        cont.unread = true;
+                    }
+                    return cont;
+                }),
+            };
+
+        case 'contacts-read':
+            return {
+                ...state,
+                contacts: state.contacts.map(cont => {
+                    if(cont.id === action.payload){
+                        cont.unread = false;
+                    }
+                    return cont;
+                }),
+            };
+
+        case 'set-to':
+            return {
+                ...state,
+                to: action.payload,
+            };
+
+        default:
+            return state;
+    }
+}
+
 const App = () => {
-    const [chat, setChat] = useState([]);
-    const [contacts, setContacts] = useState([]);
     const [mySocketId, setMySocketId] = useState('');
-    const [to, setTo] = useState({});
     const [publicKey, setPublicKey] = useState('');
+    const [state, dispatch] = useReducer(reducer, initialState);
 
     const keysHandler = useCallback((pubKey) => {
         // Store public key on local state
@@ -34,17 +114,16 @@ const App = () => {
 
     const decryptedHandler = useCallback((msg) => {
         // Add flag to contact to indicate there's a new message
-        setContacts(prevState => {
-            return prevState.map(cont => {
-                if(cont.id === msg.from){
-                    cont.unread = true;
-                }
-                return cont;
-            });
+        dispatch({
+            type: 'contacts-unread',
+            payload: msg.from,
         });
 
         // Add incoming decrypted message to local state
-        setChat(prevState => [...prevState, msg]);
+        dispatch({
+            type: 'set-chat',
+            payload: msg,
+        });
     }, []);
 
     // Set up listeners for socket events
@@ -71,7 +150,10 @@ const App = () => {
 
         // Receive list of all online contacts
         socket.on('all-contacts', (contactArr) => {
-            setContacts(JSON.parse(contactArr));
+            dispatch({
+                type: 'set-contacts',
+                payload: JSON.parse(contactArr),
+            });
         });
 
         // Store my socket.id for future reference
@@ -81,13 +163,17 @@ const App = () => {
 
         // Add new contact to local state
         socket.on('new-contact', (contact) => {
-            setContacts(prev => [...prev, JSON.parse(contact)]);
+            dispatch({
+                type: 'new-contact',
+                payload: JSON.parse(contact),
+            });
         });
 
         // Remove disconnected contact from local state
         socket.on('contact-die', (contactId) => {
-            setContacts(prevState => {
-                return prevState.filter(i => i.id !== contactId);
+            dispatch({
+                type: 'contact-die',
+                payload: contactId,
             });
         });
 
@@ -102,14 +188,14 @@ const App = () => {
     }, []);
 
     const newMessageHandler = (msg) => {
-        if(!to || !publicKey) return;
+        if(!state.to.id || !publicKey) return;
 
         const newMsg = {
             at: Date.now(),
             from: mySocketId,
             fromKey: publicKey,
-            to: to.id,
-            key: to.key,
+            to: state.to.id,
+            key: state.to.key,
             text: msg,
         };
 
@@ -120,19 +206,21 @@ const App = () => {
         });
 
         // Add new message to local state
-        setChat(prevState => [...prevState, newMsg]);
+        dispatch({
+            type: 'set-chat',
+            payload: newMsg,
+        });
     };
 
     const establishChatHandler = (contact) => {
-        setTo(contact);
+        dispatch({
+            type: 'set-to',
+            payload: contact,
+        });
         // Remove "unread" flag from contact
-        setContacts(prevState => {
-            return prevState.map(cont => {
-                if(cont.id === contact.id){
-                    cont.unread = false;
-                }
-                return cont;
-            });
+        dispatch({
+            type: 'contacts-read',
+            payload: contact.id,
         });
     };
 
@@ -141,16 +229,15 @@ const App = () => {
             <div className='top-row'>
                 <div className='left'>
                     <History
-                        chat={chat}
-                        to={to.id || ''}
+                        chat={state.chat}
+                        to={state.to.id || ''}
                         mySocketId={mySocketId}
                     />
                 </div>
                 <div className='right'>
                     <div className='top'>
                         <Contacts
-                            // only pass contacts with a public key
-                            contacts={contacts.filter(i => i.key && i.id !== mySocketId)}
+                            contacts={state.contacts.filter(i => i.id !== mySocketId)}
                             onEstablishChat={establishChatHandler}
                             isReady={Boolean(publicKey)}
                         />

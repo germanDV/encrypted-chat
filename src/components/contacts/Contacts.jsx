@@ -10,6 +10,15 @@ const Contacts = (props) => {
             </div>
         );
     }
+
+    if(props.contacts.length === 0){
+        return (
+            <div className='contacts__container'>
+                <h2>No contacts online</h2>
+            </div>
+        );
+    }
+
     return (
         <div className='contacts__container'>
             <h2>online contacts</h2>
@@ -40,7 +49,7 @@ const Contacts = (props) => {
 };
 
 Contacts.propTypes = {
-    contacts: PropTypes.arrayOf(PropTypes.object).isRequired,
+    contacts: PropTypes.array.isRequired,
     onEstablishChat: PropTypes.func.isRequired,
     isReady: PropTypes.bool.isRequired,
 };

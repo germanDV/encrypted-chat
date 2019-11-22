@@ -6,6 +6,8 @@ import React, {
     useReducer,
 } from 'react';
 import io from 'socket.io-client';
+import JSEncrypt from 'jsencrypt';
+import sha256 from 'crypto-js/sha256';
 import Input from './input/Input';
 import History from './history/History';
 import Contacts from './contacts/Contacts';
@@ -16,6 +18,9 @@ const worker = new Worker('./worker.js');
 
 // Create socket
 const socket = io();
+
+// Create JSEncrypt instance to sign messages
+const crypto = new JSEncrypt();
 
 // Initial state for reducer
 const initialState = {
@@ -108,22 +113,36 @@ const App = () => {
     }, []);
 
     const encryptedHandler = useCallback((msg) => {
+        // Sign message
+        crypto.setKey(msg.privateKey);
+        delete msg.privateKey;
+        const signature = crypto.sign(msg.text, sha256, 'sha256');
+        msg.signature = signature;
+
         // Emit new message through the socket
         socket.emit('new-message', JSON.stringify(msg));
     }, []);
 
     const decryptedHandler = useCallback((msg) => {
-        // Add flag to contact to indicate there's a new message
-        dispatch({
-            type: 'contacts-unread',
-            payload: msg.from,
-        });
+        // Verify msg signature
+        crypto.setPublicKey(msg.fromKey);
+        const isValid = crypto.verify(msg.signedText, msg.signature, sha256);
 
-        // Add incoming decrypted message to local state
-        dispatch({
-            type: 'set-chat',
-            payload: msg,
-        });
+        if(isValid){
+            // Add flag to contact to indicate there's a new message
+            dispatch({
+                type: 'contacts-unread',
+                payload: msg.from,
+            });
+
+            // Add incoming decrypted message to local state
+            dispatch({
+                type: 'set-chat',
+                payload: msg,
+            });
+        } else{
+            console.log('Discarded message with invalid signature.');
+        }
     }, []);
 
     // Set up listeners for socket events

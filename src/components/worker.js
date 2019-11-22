@@ -4,6 +4,9 @@ self.window = self;
 // Import JSEncrypt library
 self.importScripts('https://cdnjs.cloudflare.com/ajax/libs/jsencrypt/2.3.1/jsencrypt.min.js');
 
+// Import crypto-js to sign messages
+// self.importScripts('../../node_modules/crypto-js/crypto-js.js');
+
 let crypto;
 let privateKey;
 
@@ -30,6 +33,7 @@ self.addEventListener('message', (event) => {
                 payload: {
                     ...event.data.payload,
                     text: crypto.encrypt(text),
+                    privateKey,
                 },
             });
 
@@ -45,6 +49,7 @@ self.addEventListener('message', (event) => {
                 payload: {
                     ...event.data.payload,
                     text: decrypted,
+                    signedText: encrypted,
                 },
             });
             break;

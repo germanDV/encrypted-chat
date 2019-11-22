@@ -18,12 +18,15 @@ io.on('connection', (socket) => {
     // Send list of already online contacts to new socket
     io.to(socket.id).emit('all-contacts', JSON.stringify(contacts));
 
-    // Let new socket know its own socket.id
-    io.to(socket.id).emit('your-socket-id', socket.id);
+    // Make sure a socket with the same id does not already exist
+    if(contacts.filter(i => i.id === socket.id).length === 0){
+        // Let new socket know its own socket.id
+        io.to(socket.id).emit('your-socket-id', socket.id);
 
-    // Add new contact to contacts array
-    const newContact = { id: socket.id, key: null };
-    contacts.push(newContact);
+        // Add new contact to contacts array
+        const newContact = { id: socket.id, key: null };
+        contacts.push(newContact);
+    }
 
     socket.on('new-message', (msg) => {
         // Parse incoming msg object

@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "end-to-end encrypted chat",
   "main": "server.js",
+  "engines": {
+    "node": "12.x"
+  },
   "scripts": {
     "start": "node server.js",
     "build": "parcel build src/index.html --out-dir dist",
